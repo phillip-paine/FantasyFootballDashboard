@@ -81,9 +81,55 @@ fit <- lm(attcoef ~ GF, data = lm_data)
 summary(fit) # 
 
 # simpler model? avg. of previous season attcoef/defcoef? is this good enough?
+# Yes just set everyone to the average attcoef/defcoef of the relegated teams last year
+
+relegated_teams <- read.csv('D:/Phillip/GitHub/FantasyFootballDashboard/Code_Local/Data/RelegatedTeams.csv')
+
+df_coef <- merge(relegated_teams, df_team_coef, by.x=c("Team", "Season"), by.y=c("name", "season"), all.x=TRUE) # keep all entries
+
+promoted_attcoef <- mean(df_coef$attcoef, na.rm = TRUE)
+promoted_defcoef <- mean(df_coef$defcoef, na.rm = TRUE)
 
 
+########################################################################
+########################################################################
+########################################################################
+## Strength of teams in premier league last season:
 
+# use full strength from end of season - possible only run second half of season?
+# then taper impact of this strength when new fixtures are played
 
+TeamCode <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2021-22/teams.csv", header = TRUE)
+# TeamCode index not in correct alphabetical order? Leeds and Leicester are wrong way round?
 
+# Swap index 9 amd 10: This (and the fixes to playersmatchdata and fixtures) are not robust to changes in the original code 
+# ideally should use week 1 matches to ensure correct indexing but probably won't be changed now. Check this at start of code?
+TeamCode[TeamCode$name == "Leeds", ]$id = 9
+TeamCode[TeamCode$name == "Leicester", ]$id = 10
+
+Fixtures <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2021-22/fixtures.csv", header = TRUE)
+# swap index 9 and 10 (Leicester and Leeds are in wrong order)
+Fixtures$team_a <- ifelse(Fixtures$team_a == 9, 10,
+                          ifelse(Fixtures$team_a == 10, 9, Fixtures$team_a))
+Fixtures$team_h <- ifelse(Fixtures$team_h == 9, 10,
+                          ifelse(Fixtures$team_h == 10, 9, Fixtures$team_h))
+
+# fit full season of results:
+strength_output <- model_TeamStrength(Fixtures, 38, 500, 1500) # complete season of data
+df_strength <- strength_output$df
+
+# Save output as csv:
+season_start_str <- TeamCode %>% select(c(id, name))
+season_start_str <- merge(season_start_str, df_strength, by.x = c("id"), by.y = c("team_index"))
+
+write.csv(season_start_str, "D:/Phillip/GitHub/FantasyFootballDashboard/Code_Local/Data/EndOfPreviousSeasonCoeffs.csv")
+
+## Combine the promoted teams and teams from previous year coefficients for season start:
+first_match_coefficients <- season_start_str %>% filter(!(name %in% c("Burnley", "Norwich", "Watford")))
+df_promoted_teams <- read.csv("D:/Phillip/GitHub/FantasyFootballDashboard/Code_Local/Data/PromotedTeamCoefs.csv")
+first_match_coefficients <- rbind(first_match_coefficients, df_promoted_teams)
+first_match_coefficients <- first_match_coefficients %>% arrange(name)
+first_match_coefficients$id <- seq(1, 20, 1)
+
+write.csv(first_match_coefficients, "D:/Phillip/GitHub/FantasyFootballDashboard/Code_Local/Data/StartOfSeasonCoeffs.csv")
 
