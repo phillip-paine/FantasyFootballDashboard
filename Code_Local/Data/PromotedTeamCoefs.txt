@@ -1,0 +1,4 @@
+id, team, attcoef, defcoef
+1, Bournemouth, -0.4124, 0.2146
+2, Fulham, -0.4124, 0.2146
+3, Notts Forest, -0.4124, 0.2146
