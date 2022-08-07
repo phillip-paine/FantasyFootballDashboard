@@ -37,9 +37,18 @@ model_TeamStrength <- function(data_fixtures, gameweek, n_ada, n_it){
 ###################################################################
 ## Add coefficents to fixture list:
 
-fixtures_strength <- function(df_fixtures, strength_model){
+fixtures_strength <- function(df_fixtures, strength_model, latest_gw){
   df_strength = strength_model$df # index names need fixing in function 
   home_adv = strength_model$H
+  
+  if(latest_gw < 6){
+    df_promoted_coefs <- read.csv("D:/Phillip/GitHub/FantasyFootballDashboard/Code_Local/Data/StartOfSeasonCoeffs.csv", stringsAsFactors = FALSE)
+    df_promoted_coefs <- df_promoted_coefs %>% rename(attcoef_old = attcoef, defcoef_old = defcoef)
+    df_strength <- merge(df_strength, df_promoted_coefs, by.x = c("team_index"), by.y = c("id"))
+    df_strength$attcoef <- 1/2*(df_strength$attcoef + df_strength$attcoef_old)
+    df_strength$defcoef <- 1/2*(df_strength$defcoef + df_strength$defcoef_old)
+    df_strength <- df_strength %>% select(-c(attcoef_old, defcoef_old))
+  }
   
   # Add coefficients to Fixture dataframe by team index:
   df_fixtures <- merge(df_fixtures, df_strength[, c("team_index", "attcoef", "defcoef")], by.x = c("team_h"), by.y = c("team_index"))
@@ -240,7 +249,7 @@ main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_ad
   
   strength_output <- model_TeamStrength(df_fixture, latest_gw, num_adapt_mcmc, num_iters_mcmc)
   
-  df_fixture <- fixtures_strength(df_fixture, strength_output)
+  df_fixture <- fixtures_strength(df_fixture, strength_output, latest_gw)
   
   ## Predict Score: Include home advantage
   

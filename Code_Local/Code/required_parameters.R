@@ -11,3 +11,5 @@ num_mTry = 3
 num_nodeSize = 10
 num_nTree = 150
 
+promoted_attcoef <- -0.4124
+promoted_defcoef <- 0.2146
