@@ -16,27 +16,27 @@ source('required_parameters.R')
 ##########################
 ## READING DATA:
 
-TeamCode <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2021-22/teams.csv", header = TRUE)
+TeamCode <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2022-23/teams.csv", header = TRUE)
 # TeamCode index not in correct alphabetical order? Leeds and Leicester are wrong way round?
 
-# Swap index 9 amd 10: This (and the fixes to playersmatchdata and fixtures) are not robust to changes in the original code 
+# Swap index: This (and the fixes to playersmatchdata and fixtures) are not robust to changes in the original code 
 # ideally should use week 1 matches to ensure correct indexing but probably won't be changed now. Check this at start of code?
-TeamCode[TeamCode$name == "Leeds", ]$id = 9
-TeamCode[TeamCode$name == "Leicester", ]$id = 10
+TeamCode[TeamCode$name == "Leeds", ]$id = 10
+TeamCode[TeamCode$name == "Leicester", ]$id = 11
 
-PlayersMatchData <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2021-22/gws/merged_gw.csv", header = TRUE)
+PlayersMatchData <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2022-23/gws/merged_gw.csv", header = TRUE)
 # opponent_team index also incorrect:
-PlayersMatchData$opponent_team <- ifelse(PlayersMatchData$opponent_team == 9, 10, 
-                                         ifelse(PlayersMatchData$opponent_team == 10, 9, PlayersMatchData$opponent_team))
+PlayersMatchData$opponent_team <- ifelse(PlayersMatchData$opponent_team == 10, 11, 
+                                         ifelse(PlayersMatchData$opponent_team == 11, 10, PlayersMatchData$opponent_team))
 # Fix names:
 PlayersMatchData$name <- iconv(PlayersMatchData$name, from="UTF-8", to="LATIN1")
 
-Fixtures <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2021-22/fixtures.csv", header = TRUE)
-# swap index 9 and 10 (Leicester and Leeds are in wrong order)
-Fixtures$team_a <- ifelse(Fixtures$team_a == 9, 10,
-                           ifelse(Fixtures$team_a == 10, 9, Fixtures$team_a))
-Fixtures$team_h <- ifelse(Fixtures$team_h == 9, 10,
-                           ifelse(Fixtures$team_h == 10, 9, Fixtures$team_h))
+Fixtures <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2022-23/fixtures.csv", header = TRUE)
+# swap index (Leicester and Leeds are in wrong order)
+Fixtures$team_a <- ifelse(Fixtures$team_a == 10, 11,
+                           ifelse(Fixtures$team_a == 11, 10, Fixtures$team_a))
+Fixtures$team_h <- ifelse(Fixtures$team_h == 10, 11,
+                           ifelse(Fixtures$team_h == 11, 10, Fixtures$team_h))
 
 ####################################
 ## Create Model Datasets:
