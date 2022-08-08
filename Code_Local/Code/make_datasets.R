@@ -1,5 +1,4 @@
 ## Creating datasets:
-# 08/11/2021
 # Phillip Paine
 
 # working code - change later
@@ -14,7 +13,6 @@ RawPlayers <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premie
 # Create full name column as a unique identifier for players - need to adjust for duplicate names:
 RawPlayers <- RawPlayers %>% filter(id == 248) # Ben Davies but on loan at Sheffield Utd so can fudge this for now
 RawPlayers <- RawPlayers %>% mutate(full_name = paste(first_name, second_name, sep = "_"))
-# write.csv(RawPlayers, "D:/Phillip/GitHub/FantasyFootball2122/FF2021_Analysis/Data/RawPlayersDataset_endofseason.csv")
 
 CleanedPlayers <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/2022-23/cleaned_players.csv", header = TRUE)
 CleanedPlayers <- CleanedPlayers %>% mutate(full_name = paste(first_name, second_name, sep = "_"))
