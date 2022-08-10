@@ -18,11 +18,11 @@ library(shinyWidgets)
 library(shinydashboard)
 library(dashboardthemes)
 library(ggplot2)
-source('D:/Phillip/GitHub/FantasyFootball2122/Code/required_parameters.R')
+list_params <- fromJSON(file="set_parameters.json")
 
 ## Fixtures and Result:
-df_results <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/ResultsPredicted_", finished_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
-df_results <- df_results %>% filter(event == next_gw) %>% select(-X) %>% rename(Gameweek = event) %>% 
+df_results <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/ResultsPredicted_", list_params$latest_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
+df_results <- df_results %>% filter(event == list_params$next_gw) %>% select(-X) %>% rename(Gameweek = event) %>% 
   select(home_team, Home_win, Draw, Away_win, away_team)
 df_results <- df_results %>% mutate(Home_win = format(round(Home_win * 100, 0), nsmall = 0), 
                                     Draw = format(round(Draw * 100, 0), nsmall = 0), 
@@ -30,19 +30,19 @@ df_results <- df_results %>% mutate(Home_win = format(round(Home_win * 100, 0), 
 df_results <- df_results %>% rename(Home = home_team, "Home Win %" = Home_win, "Draw %" = Draw, "Away Win %" = Away_win, Away = away_team)
 
 ## League Table;
-df_table <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/TablePredicted_", finished_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
+df_table <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/TablePredicted_", list_params$latest_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
 # Reshape the table data so that the points are on column and the gameweek aggregate is filtered on:
 df_table_long <- df_table %>% pivot_longer(cols = starts_with("Points_"), names_to = "Played", names_prefix = "Points_", values_to = "Points")
 df_table_long <- df_table_long %>% arrange(Played, desc(Points))
 df_table_long <- df_table_long %>% select(-X)
-played_matches <- seq(finished_gw, 38, by = 1) # for slider
+played_matches <- seq(list_params$latest_gw, 38, by = 1) # for slider
 df_table_long <- df_table_long %>% rename(Team = name)
 
 ## Players:
-df_players <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/PlayersFFPredicted_", finished_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
+df_players <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/PlayersFFPredicted_", list_params$latest_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
 df_players$predicted_total_points <- if_else(is.na(df_players$predicted_total_points), 0.0, df_players$predicted_total_points)
 # recode(column, val = new_val, etc..) if we want to replace value with a new one and keep all other existing
-df_playersStats <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/PlayersFFStats_", finished_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
+df_playersStats <- read.csv(paste("D:/Phillip/GitHub/FantasyFootball2122/Output/PlayersFFStats_", list_params$latest_gw, ".csv", sep = ""), stringsAsFactors = FALSE)
 df_playersStats <- df_playersStats %>% mutate(value_avg_points = total_points / current_value)
 
 
@@ -197,12 +197,12 @@ body <- dashboardBody(
             titlePanel( title = "League Table and Next Fixture Forecast"),
             fluidRow(
               box( width = 5, title = "Forecasted League Table", tableOutput("table_league")),
-              box( width = 7, title = paste("Forecasting Gameweek: ", next_gw, sep =""), tableOutput("table_results"))
+              box( width = 7, title = paste("Forecasting Gameweek: ", list_params$next_gw, sep =""), tableOutput("table_results"))
             ),
             fluidRow(
               setSliderColor("#3D1757", sliderId = c(1)),
               box(
-                width = 4, sliderInput(inputId = "games_played", label = "Gameweeks", min = finished_gw, max = 38,
+                width = 4, sliderInput(inputId = "games_played", label = "Gameweeks", min = list_params$latest_gw, max = 38,
                                        value = 38, step = 1, sep = ""))
             )
     ),
@@ -239,7 +239,7 @@ body <- dashboardBody(
             titlePanel( title = "Forecasted Fantasy Player Points"),
             fluidRow(
               box( # use position to filter plot:
-                title = paste("Predicted Points Next Fixture: Gameweek ", next_gw, sep = ""),
+                title = paste("Predicted Points Next Fixture: Gameweek ", list_params$next_gw, sep = ""),
                 width = 12, height = 450, plotOutput("predict_TPS", hover = hoverOpts(id = "pred_tps_hover")))
               ),
               fluidRow(

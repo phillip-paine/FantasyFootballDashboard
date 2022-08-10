@@ -241,19 +241,20 @@ create_features <- function(pm_data, df_next, team_str, latest_gw){
 ####################################################
 ## Main Source File:
 
-main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_adapt_mcmc, num_iters_mcmc, rf_nTree, rf_nodeSize, rf_mTry){
+main_source <- function(df_fixture, df_teams, df_playersMatch, param_list){
+  
   #####################################
   ## Team Modelling:
   
   ## Team Strength Model:
   
-  strength_output <- model_TeamStrength(df_fixture, latest_gw, num_adapt_mcmc, num_iters_mcmc)
+  strength_output <- model_TeamStrength(df_fixture, param_list$latest_gw, param_list$num_adapt, param_list$num_iter)
   
-  df_fixture <- fixtures_strength(df_fixture, strength_output, latest_gw)
+  df_fixture <- fixtures_strength(df_fixture, strength_output, param_list$latest_gw)
   
   ## Predict Score: Include home advantage
   
-  df_fixture <- predict_MatchScore(df_fixture, latest_gw)
+  df_fixture <- predict_MatchScore(df_fixture, param_list$latest_gw)
   
   ## Points:
   
@@ -262,7 +263,7 @@ main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_ad
   
   ## Create League Table:
   
-  df_finaltable <- create_table(df_fixture, df_teams, latest_gw)
+  df_finaltable <- create_table(df_fixture, df_teams, param_list$latest_gw)
   # create a gameweek slider on dashboard
   
   # rename fixture columns:
@@ -278,13 +279,13 @@ main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_ad
   df_playersMatch <- df_playersMatch %>% rename(team_id = id, opponent_id = opponent_team)
   
   # Create Features:
-  next_fixtures <- df_fixture %>% filter(event == (latest_gw + 1)) # next set of fixtures by event/gw
-  feature_playerData <- create_features(df_playersMatch, next_fixtures, strength_output$df, latest_gw)
+  next_fixtures <- df_fixture %>% filter(event == (param_list$latest_gw + 1)) # next set of fixtures by event/gw
+  feature_playerData <- create_features(df_playersMatch, next_fixtures, strength_output$df, param_list$latest_gw)
   # need to add binning of features to improve performance? Also probably standardise features to make separation of groups more distinct
   
   
   # Final Model Run : All Training Data:
-  model_data <- feature_playerData %>% ungroup() %>% filter(round <= latest_gw) %>% 
+  model_data <- feature_playerData %>% ungroup() %>% filter(round <= param_list$latest_gw) %>% 
     select(total_points, was_home, total_points_lag1, total_points_lag2,
            total_points_lag3, oppo_attcoef, oppo_defcoef, team_attcoef, team_defcoef,
            rolling3avg_tp, rolling3_oppadjusted_atttp, rolling3_oppadjusted_deftp,
@@ -295,7 +296,8 @@ main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_ad
                                           oppo_attcoef + oppo_defcoef + team_attcoef + team_defcoef + rolling3avg_tp +
                                           rolling3_oppadjusted_atttp + rolling3_oppadjusted_deftp + rolling3_total_tp +
                                           transfers_balance_lag + value_lag + bonus_lag + bps_lag + position, 
-                                        data = model_data, na.action = na.omit, ntree=rf_nTree, replace=TRUE, nodesize=rf_nodeSize, mTry=rf_mTry)
+                                        data = model_data, na.action = na.omit, ntree=param_list$num_mTry, replace=TRUE, 
+                                        nodesize=param_list$num_nodeSize, mTry=param_list$num_nTree)
   # plot(modelRF)
   
   # Fixture dataset to return:
@@ -303,7 +305,7 @@ main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_ad
   
   # Fantasy Predictions for Future Gameweek:
   # FOr now we just predict one future week : could do avg. three games etc
-  predictionDataset <- feature_playerData %>% ungroup() %>% filter(round == (latest_gw + 1)) %>% 
+  predictionDataset <- feature_playerData %>% ungroup() %>% filter(round == (param_list$latest_gw + 1)) %>% 
     select(name, team, total_points, was_home, total_points_lag1, total_points_lag2, total_points_lag3, oppo_attcoef, oppo_defcoef, team_attcoef, team_defcoef,
            rolling3avg_tp, rolling3_oppadjusted_atttp, rolling3_oppadjusted_deftp, rolling3_total_tp, transfers_balance_lag, value_lag, 
            bonus_lag, bps_lag, position, round)
@@ -313,16 +315,16 @@ main_source <- function(df_fixture, df_teams, df_playersMatch, latest_gw, num_ad
   predictionDataset$predicted_total_points <- pred_output
   
   predictionDataset <- predictionDataset %>% select(name, team, position, predicted_total_points, round)
-  predictionDataset <- merge(predictionDataset, df_playersMatch %>% filter(round == latest_gw) %>% select(name, value), by = c("name"))
+  predictionDataset <- merge(predictionDataset, df_playersMatch %>% filter(round == param_list$latest_gw) %>% select(name, value), by = c("name"))
   predictionDataset$current_value <- predictionDataset$value / 10
  
-  df_playerPoints <- df_playersMatch %>% filter(round <= latest_gw) %>% select(name, position, total_points) %>%
+  df_playerPoints <- df_playersMatch %>% filter(round <= param_list$latest_gw) %>% select(name, position, total_points) %>%
     group_by(name, position) %>% summarise(total_points = sum(total_points))
-  df_playerPoints <- merge(df_playerPoints, df_playersMatch %>% filter(round == latest_gw) %>% select(name, value), by = c("name"))
+  df_playerPoints <- merge(df_playerPoints, df_playersMatch %>% filter(round == param_list$latest_gw) %>% select(name, value), by = c("name"))
   df_playerPoints$current_value <- df_playerPoints$value/10 # convert to millions
   df_playerPoints <- df_playerPoints %>% select(-value)
   
-  df_playerForm <- df_playersMatch %>% filter(round %in% seq(latest_gw - 4, latest_gw)) %>% select(name, position, total_points) %>%
+  df_playerForm <- df_playersMatch %>% filter(round %in% seq(param_list$latest_gw - 4, param_list$latest_gw)) %>% select(name, position, total_points) %>%
     group_by(name, position) %>% summarise(form_total_points = sum(total_points))
   df_playerPoints <- merge(df_playerPoints, df_playerForm, by = c("name", "position"), all.x = TRUE)
   

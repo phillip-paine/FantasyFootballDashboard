@@ -5,12 +5,6 @@
 setwd("D:/Phillip/GitHub/FantasyFootballDashboard/Code_Local/Code")
 source('required_packages.R')
 source('required_functions.R')
-source('required_parameters.R')
-
-## To do:
-# Change gw to kickoff time to model fixtures and predict future results + fantasy football player points
-# better model for goals scored - zero-inflated or hurdle poisson model?
-# scale or normalise FF model variables, e.g. team strength coefficients etc.
 
 ##########################
 ## READING DATA:
@@ -36,6 +30,16 @@ Fixtures$team_a <- ifelse(Fixtures$team_a == 10, 11,
                            ifelse(Fixtures$team_a == 11, 10, Fixtures$team_a))
 Fixtures$team_h <- ifelse(Fixtures$team_h == 10, 11,
                            ifelse(Fixtures$team_h == 11, 10, Fixtures$team_h))
+########################################
+## Parameters:
+# write json to file 
+temp = Fixtures %>% group_by(event) %>% summarise(max_fin = max(finished)) %>% filter(max_fin == "True")
+latest_gw = max(temp$event)
+list_params <- list(latest_gw = max(temp$event), next_gw = max(temp$event)+1, num_adapt=150, num_iter=1500, num_mTry=3,num_nodeSize=10,
+                    num_nTree=150, promoted_attcoef=-0.4124, promoted_defcoef=0.2146)
+
+json_params <- toJSON(list_params)
+write(json_params, "set_parameters.json") # store as json to read in the app.R file
 
 ####################################
 ## Create Model Datasets:
@@ -43,7 +47,7 @@ Fixtures$team_h <- ifelse(Fixtures$team_h == 10, 11,
 # Check that Leeds and Leicester are still in wrong order and fix:
 # move code from above (to do)
 
-df_output <- main_source(Fixtures, TeamCode, PlayersMatchData, finished_gw, num_adapt, num_iter, num_mTry, num_nodeSize, num_nTree)
+df_output <- main_source(Fixtures, TeamCode, PlayersMatchData, list_params)
 
 # Compile Output:
 
